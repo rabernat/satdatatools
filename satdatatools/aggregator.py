@@ -13,7 +13,7 @@ def binsum2D(data, i, j, Nx, Ny):
         data_binned[j[n],i[n]] += data[n]
     return data_binned
 
-class latlon_aggregator(object):
+class LatLonAggregator(object):
     """A class for aggregating L2 data into a gridded dataset."""
 
     def __init__(self, dlon=1., dlat=1., lonlim=(-180,180), latlim=(-90,90)):

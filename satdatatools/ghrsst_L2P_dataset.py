@@ -6,16 +6,27 @@ from fnmatch import fnmatch
 import tempfile
 import subprocess
 
-class ghrsst_file(object):
+class GHRSSTFile(object):
     """A class to wrap a single ghrsst file."""
 
-    def __init__(self, fobj):
-        assert isinstance(fobj, file)
+    def __init__(self, fname, use_tmpfile=True):
+        #assert isinstance(fobj, file)
+        assert os.path.exists(fname)
+        if fnmatch(fname, '*.bz2') and use_tmpfile:
+            fobj = tempfile.TemporaryFile('w+b', suffix='nc')
+            subprocess.call(["bzcat", fname], stdout=fobj)
+            fobj.seek(0)
+        elif fnmatch(fname, '*.bz2'):
+            fobj = bz2.BZ2File(fname, 'rb')
+        else:
+            fobj = file(fname, 'rb')
+            
         self.ncf = netcdf_file(fobj)
 
-        self.fname = fobj.name
+        self.fname = fname
         for varname in self.ncf.variables:
             self._get_and_scale_variable(varname)
+        fobj.close()
 
     def _get_and_scale_variable(self, varname):
         v = self.ncf.variables[varname]
@@ -33,25 +44,19 @@ class ghrsst_file(object):
                 data = data + v.add_offset
         setattr(self, varname, data)
 
-class ghrsst_collection(object):
+class GHRSSTCollection(object):
     """A way to iterate through a bunch of ghrsst L2P files."""
 
     def __init__(self, base_dir):
         self.base_dir = base_dir
 
     # I'm not sure this is the right way to do this 
-    def iterate(self, use_tmpfile=True):
+    def iterate(self, yield_fname=False):
         for root, subdirs, files in os.walk(self.base_dir):
             for f in files:
                 if fnmatch(f, '*.nc') or fnmatch(f, '*.bz2'):
                     fname = os.path.join(root, f)
-                    if fnmatch(f, '*.bz2') and use_tmpfile:
-                        fobj = tempfile.TemporaryFile('w+b', suffix='nc')
-                        subprocess.call(["bzcat", fname], stdout=fobj)
-                        fobj.seek(0)
-                    elif fnmatch(f, '*.bz2'):
-                        fobj = bz2.BZ2File(fname, 'rb')
+                    if yield_fname:
+                        yield fname
                     else:
-                        fobj = file(fname, 'rb')
-                    yield ghrsst_file(fobj)
-                    fobj.close()
+                        yield GHRSSTFile(fname)
