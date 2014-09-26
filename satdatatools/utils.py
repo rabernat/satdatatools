@@ -4,21 +4,26 @@ from scipy import ndimage
 # Earth radius
 a=6.371e6
 
-def coarsen(fact=2, data):
+def coarsen(data, fact=2, required_count=0.5):
     """Coarsen a 2D image by factor fact. Handle mask appropriately"""
     Ny, Nx = data.shape
     assert isinstance(fact, int), type(fact)
-    if  mod(Nx, fact) or mod(Ny, fact):
-        raise ValueError('Nx and Ny need to be divisible by fact')
     
     # make sure we have a masked array
-    data = np.ma.masked_array(data)
-    
+    data = np.ma.masked_array(data, mask=False, keep_mask=True)
+
+    # pad array as necessary to make it nicely divisible by fact
+    p = ((0, fact - np.mod(Ny,fact)), (0, fact - np.mod(Nx,fact)))
+    data = np.ma.masked_array(
+                np.pad(data, p, mode='constant' ),
+                np.pad(data.mask, p, mode='constant', constant_values=(True,) ))
+    Ny, Nx = data.shape
+
     Y, X = np.ogrid[0:Ny, 0:Nx]
     regions = Nx/fact * (Y/fact) + X/fact
     dsum = ndimage.sum(data.filled(0), labels=regions, index=np.arange(regions.max() + 1))
     count = ndimage.sum(~data.mask, labels=regions, index=np.arange(regions.max() + 1))
-    res = np.ma.masked_invalid(dsum / count)
+    res = np.ma.masked_array(dsum / count, count<(required_count*fact**2))
     res.shape = (Ny/fact, Nx/fact)
     return res
 
