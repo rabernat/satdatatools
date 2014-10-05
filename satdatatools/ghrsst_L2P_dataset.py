@@ -51,7 +51,7 @@ class GHRSSTCollection(object):
         self.base_dir = base_dir
 
     # I'm not sure this is the right way to do this 
-    def iterate(self, yield_fname=False):
+    def iterate(self, yield_fname=True):
         for root, subdirs, files in os.walk(self.base_dir):
             for f in files:
                 if fnmatch(f, '*.nc') or fnmatch(f, '*.bz2'):
