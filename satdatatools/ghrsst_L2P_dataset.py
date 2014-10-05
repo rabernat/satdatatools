@@ -1,5 +1,5 @@
 import numpy as np
-#from scipy.io import netcdf_file
+from scipy.io import netcdf_file
 import netCDF4
 import bz2
 import os
@@ -29,8 +29,8 @@ class GHRSSTFile(object):
                 fobj = bz2.BZ2File(fname, 'rb')
             else:
                 fobj = file(fname, 'rb')            
-            #self.ncf = netcdf_file(fobj)
-            self.ncf = netCDF4.Dataset(fobj)
+            self.ncf = netcdf_file(fobj)
+            #self.ncf = netCDF4.Dataset(fobj)
         else:
             raise IOError("Couldn't figure out how to open " + fname)
 
@@ -44,17 +44,20 @@ class GHRSSTFile(object):
     def _get_and_scale_variable(self, varname):
         v = self.ncf.variables[varname]
         data = v[:]
-        if hasattr(v, '_FillValue'):
-            mask = data == v._FillValue
-            if np.any(mask):
-                data = np.ma.masked_array(data, mask)
-        if hasattr(v, 'scale_factor'):
-            # can't do in place because we need type conversion
-            if v.scale_factor != 1:
-                data = data * v.scale_factor
-        if hasattr(v, 'add_offset'):
-            if v.add_offset != 0:
-                data = data + v.add_offset
+        # apply corrections if using netCDF3
+        # netCDF4 does it automatically
+        if not isinstance(self.ncf, netCDF4.Dataset):
+            if hasattr(v, '_FillValue'):
+                mask = data == v._FillValue
+                if np.any(mask):
+                    data = np.ma.masked_array(data, mask)
+            if hasattr(v, 'scale_factor'):
+                # can't do in place because we need type conversion
+                if v.scale_factor != 1:
+                    data = data * v.scale_factor
+            if hasattr(v, 'add_offset'):
+                if v.add_offset != 0:
+                    data = data + v.add_offset
         setattr(self, varname, data)
 
 class GHRSSTCollection(object):
