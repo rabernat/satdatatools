@@ -4,7 +4,7 @@ import os
 
 def test_ghrsst_collection():
     
-    collection_list = [ghrsst.GHRSSTOpenDAPCatalog()]
+    collection_list = [ghrsst.GHRSSTOpenDAPCatalog(),]
 
     base_dir = '/Volumes/Bucket1/Data/ghrsst/data/L2P/MODIS_A/JPL/'
     if os.path.exists(base_dir):
